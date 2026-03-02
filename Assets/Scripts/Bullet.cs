@@ -6,7 +6,7 @@ public class Bullet : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        StartCoroutine(DestroyAfterTime());
+        // StartCoroutine(DestroyAfterTime());
     }
 
     // Update is called once per frame
@@ -14,11 +14,11 @@ public class Bullet : MonoBehaviour
     {
     }
 
-    private System.Collections.IEnumerator DestroyAfterTime()
-    {
-        yield return new WaitForSeconds(0.5f); // Adjust the time as needed
-        Destroy(gameObject);
-    }
+    // private System.Collections.IEnumerator DestroyAfterTime()
+    // {
+    //     yield return new WaitForSeconds(0.5f); // Adjust the time as needed
+    //     Destroy(gameObject);
+    // }
     private void OnCollisionEnter(Collision collision)
     {
         if(collision.gameObject.tag == "Enemy" || collision.gameObject.tag == "Wall")

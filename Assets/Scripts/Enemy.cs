@@ -2,32 +2,63 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
+    [Header("Movement")]
     public float moveSpeed;
-    public Transform player;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    [Header("Combat")]
+    public float fireRate = 1f;
+    public float bulletSpeed = 10f;
+    public float shootRange = 8f;
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+
+    private Transform player;
+    private float nextFireTime;
+
     void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+            player = playerObj.transform;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (player != null)
+        // BUG FIX: condition was inverted — enemy only acted when NOT playing
+        if (MatchManager.Instance?.State != MatchManager.MatchState.Playing) return;
+        if (player == null) return;
+
+        transform.position = Vector3.MoveTowards(
+            transform.position, player.position, moveSpeed * Time.deltaTime);
+
+        // Cache sqrMagnitude instead of Vector3.Distance to avoid a sqrt call
+        float sqrDist = (player.position - transform.position).sqrMagnitude;
+        if (sqrDist <= shootRange * shootRange && Time.time >= nextFireTime)
         {
-        Vector3 direction = (player.position - transform.position).normalized;
-        transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
+            Shoot();
+            nextFireTime = Time.time + 1f / fireRate;
         }
+    }
+
+    void Shoot()
+    {
+        if (bulletPrefab == null) return;
+
+        GameObject bullet = Instantiate(
+            bulletPrefab,
+            firePoint.position + firePoint.forward * 1f,
+            firePoint.rotation);
+
+        if (bullet.TryGetComponent(out Rigidbody rb))
+            rb.linearVelocity = firePoint.forward * bulletSpeed;
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.tag == "Bullet")
         {
-            // Handle bullet collision (e.g., reduce health, destroy enemy, etc.)
-            Debug.Log("Enemy hit by a bullet!");
-            Destroy(gameObject); // Example: destroy the enemy
+            Destroy(gameObject);
+            MatchManager.Instance.EnemyDied();
         }
     }
 }
