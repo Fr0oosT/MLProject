@@ -28,8 +28,8 @@ public class Enemy : MonoBehaviour
         if (MatchManager.Instance?.State != MatchManager.MatchState.Playing) return;
         if (player == null) return;
 
-        transform.position = Vector3.MoveTowards(
-            transform.position, player.position, moveSpeed * Time.deltaTime);
+        transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
+        transform.LookAt(player);
 
         // Cache sqrMagnitude instead of Vector3.Distance to avoid a sqrt call
         float sqrDist = (player.position - transform.position).sqrMagnitude;

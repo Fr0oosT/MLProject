@@ -148,7 +148,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f123c9db168fee4fb0c874e093af410, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  <State>k__BackingField: 0
   countdownFrom: 3
+  <playerWon>k__BackingField: 0
 --- !u!4 &22068484
 Transform:
   m_ObjectHideFlags: 0
@@ -198,7 +200,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 98}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &150705083
@@ -989,12 +991,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1408914202}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 615161e9b311de94ba340c280a8ac775, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ab61b8c8cb53b14c97e50ea12f91683, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  rotationSpeed: 450
-  walkSpeed: 5
-  runSpeed: 10
+  bulletPrefab: {fileID: 2945978606866661294, guid: ec28ff0f57779884195ede9b517975af, type: 3}
+  firePoint: {fileID: 996188747}
+  bulletSpeed: 20
 --- !u!143 &1408914204
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1132,12 +1134,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1408914202}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24da349b7bf19734e8943d3e262807bc, type: 3}
+  m_Script: {fileID: 11500000, guid: 651ad523ceab0954fb9e622173494c83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Shooting
-  bulletPrefab: {fileID: 2945978606866661294, guid: ec28ff0f57779884195ede9b517975af, type: 3}
-  firePoint: {fileID: 996188747}
-  bulletSpeed: 50
+  rotationSpeed: 450
+  walkSpeed: 5
+  runSpeed: 10
 --- !u!114 &1408914211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1147,11 +1149,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1408914202}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db845e712e9111d4babbb2e7036dadfd, type: 3}
+  m_Script: {fileID: 11500000, guid: 417cb1c2d4c4fb74ab3cd2fcf36357c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  playerHealth: 1
-  maxHealth: 1
+  playerHealth: 0
+  maxHealth: 0
 --- !u!65 &1408914212
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1976,6 +1978,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 269eececd29f1af4f9ca251cd1edc08a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  <PlayerWins>k__BackingField: 0
+  <EnemyWins>k__BackingField: 0
 --- !u!4 &1891357641
 Transform:
   m_ObjectHideFlags: 0
