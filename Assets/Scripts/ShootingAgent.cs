@@ -14,7 +14,7 @@ public class ShootingAgent : Agent
     [Header("Movement")]
     public float moveSpeed = 5f;
     public float rotateSpeed = 180f;
-    public Vector2 arenaBounds = new Vector2(8f, 8f); // X and Z limits
+
 
     private bool shotAvailable = true;
     private int stepsUntilNextShot = 0;
@@ -60,13 +60,6 @@ public class ShootingAgent : Agent
             stepsUntilNextShot--;
             if (stepsUntilNextShot <= 0)
                 shotAvailable = true;
-        }
-
-        // Penalize leaving the arena
-        if (Mathf.Abs(transform.localPosition.x) > arenaBounds.x ||
-            Mathf.Abs(transform.localPosition.z) > arenaBounds.y)
-        {
-            AddReward(-0.01f);
         }
     }
 
