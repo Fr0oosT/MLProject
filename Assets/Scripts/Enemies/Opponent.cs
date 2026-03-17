@@ -8,29 +8,12 @@ public class Opponent : MonoBehaviour
     public int StartingHealth = 100;
     private int CurrentHealth;
 
-    [Header("Left-Right Movement")]
-    public float moveSpeed = 4f;
-    public float zWidth = 3f;
-    private Vector3 StartPosition;
-
-    [Header("Pattern System")]
-    private Vector3[] zPoints;
-    // private int currentPoint;
-    // private int direction = 1; // 1 = forward, -1 = reverse
-
-    private Vector3 randomPoint;
-
+    private Vector3 startPosition;
     void Start()
     {
-        StartPosition = transform.position;
+        startPosition = transform.position;
         CurrentHealth = StartingHealth;
-    }
-
-    private void TeleportToRandom()
-    {
-        float randomX = Random.Range(-zWidth, zWidth);
-        transform.position = StartPosition + new Vector3(randomX, 0f, 0f);
-    }       
+    } 
 
     public void GetShot(int damage, Agent shooter)
     {
@@ -56,7 +39,7 @@ public class Opponent : MonoBehaviour
     {
         CurrentHealth = StartingHealth;
         
-        TeleportToRandom();
+        transform.position = startPosition;
     }
 
     private void OnMouseDown()
