@@ -8,10 +8,10 @@ public class Opponent : MonoBehaviour
     public int StartingHealth = 100;
     private int CurrentHealth;
 
-    private Vector3 startPosition;
+    // private Vector3 startPosition;
     void Start()
     {
-        startPosition = transform.position;
+        // startPosition = transform.position;
         CurrentHealth = StartingHealth;
     } 
 
@@ -27,7 +27,7 @@ public class Opponent : MonoBehaviour
     private void Die(Agent shooter)
     {
         Debug.Log("Opponent died!");
-        ShootingAgent shootingAgent = shooter as ShootingAgent;
+        C1Agent shootingAgent = shooter as C1Agent;
         if (shootingAgent != null)
         {
             shootingAgent.RegisterKill();
@@ -39,7 +39,7 @@ public class Opponent : MonoBehaviour
     {
         CurrentHealth = StartingHealth;
         
-        transform.position = startPosition;
+        // transform.position = startPosition;
     }
 
     private void OnMouseDown()
