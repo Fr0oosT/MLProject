@@ -1,18 +1,21 @@
 using UnityEngine;
 using Unity.MLAgents;
-using Unity.MLAgents.Sensors;
-using Unity.MLAgents.Actuators;
-using System.Collections;
+
 public class Opponent : MonoBehaviour
 {
     public int StartingHealth = 100;
     private int CurrentHealth;
+
+    private OpponentStrafe OpponentStrafe;
 
     // private Vector3 startPosition;
     void Start()
     {
         // startPosition = transform.position;
         CurrentHealth = StartingHealth;
+
+        OpponentStrafe = GetComponent<OpponentStrafe>();
+
     } 
 
     public void GetShot(int damage, Agent shooter)
@@ -27,7 +30,7 @@ public class Opponent : MonoBehaviour
     private void Die(Agent shooter)
     {
         Debug.Log("Opponent died!");
-        C1Agent shootingAgent = shooter as C1Agent;
+        C2Agent shootingAgent = shooter as C2Agent;
         if (shootingAgent != null)
         {
             shootingAgent.RegisterKill();
@@ -40,6 +43,7 @@ public class Opponent : MonoBehaviour
         CurrentHealth = StartingHealth;
         
         // transform.position = startPosition;
+        OpponentStrafe.ResetPosition();
     }
 
     private void OnMouseDown()
