@@ -10,7 +10,7 @@ public class C2Agent : Agent
     private Vector3 startPosition;
 
     public Transform opponentTransform;
-    private Vector3 opponentPreviousPosition;
+    private Rigidbody opponentRb;
 
     [Header("Visual Feedback")]
     public Material winMaterial;
@@ -24,14 +24,13 @@ public class C2Agent : Agent
     private int stepsUntilNextShotIsAvailable = 0;
 
     [Header("Strafing")]
-    private float strafeSpeed = 6f;
-    private float rotationSpeed = 500f;
-
-    private int facingAwaySteps = 0;
+    private float strafeSpeed = 3f;
+    private float rotationSpeed = 300f;
 
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody>();
+        opponentRb = opponentTransform.GetComponent<Rigidbody>();
         startPosition = transform.localPosition;
     }
 
@@ -55,13 +54,10 @@ public class C2Agent : Agent
             }
             else
             {
-                AddReward(-0.1f);
+                AddReward(-0.1f); // Hit something else on opponent layer (e.g. wall)
             }
         }
-        else
-        {
-            AddReward(-0.15f); // Miss penalty
-        }
+
 
         shotAvailable = false;
         stepsUntilNextShotIsAvailable = 50;
@@ -81,19 +77,15 @@ public class C2Agent : Agent
     {
         shotAvailable = true;
 
-        // opponentTransform.localPosition = new Vector3(
-        //     Random.Range(-2f, 1.6f), 0.75f, Random.Range(7f, 9f)
-        // );
-        transform.localPosition = new Vector3(
-            Random.Range(-2f, 1.6f), 0.75f, Random.Range(1f, 3f)
-        );
+        transform.localPosition = startPosition;
 
         // Face the opponent at episode start
         transform.rotation = Quaternion.identity;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
 
-        opponentPreviousPosition = opponentTransform.localPosition;
 
-        facingAwaySteps = 0;
+        
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -102,18 +94,19 @@ public class C2Agent : Agent
         sensor.AddObservation(opponentTransform.localPosition);                 // 3
         sensor.AddObservation(shotAvailable ? 1f : 0f);                         // 1
 
-        // Opponent velocity — critical for C3 tracking
-        Vector3 opponentVelocity = (opponentTransform.localPosition - opponentPreviousPosition) / Time.fixedDeltaTime;
-        sensor.AddObservation(opponentVelocity);                                // 3
+        // Opponent velocity
+        Vector3 localOpponentVelocity = transform.InverseTransformDirection(opponentRb.linearVelocity);
+        sensor.AddObservation(localOpponentVelocity); // 3
+        // Debug.Log(localOpponentVelocity);
 
-        // Agent's facing direction relative to opponent
+        // Agent facing direction relative to opponent
         Vector3 dirToOpponent = (opponentTransform.localPosition - transform.localPosition).normalized;
-        sensor.AddObservation(dirToOpponent);                                   // 3
+        sensor.AddObservation(dirToOpponent);       // 3
 
-        // How well the agent is facing the opponent (1 = perfect, -1 = facing away)
-        sensor.AddObservation(Vector3.Dot(transform.forward, dirToOpponent));   // 1
+        // Angle remaining to target, how far off its aim offset is
+        float angleToOpponent = Vector3.SignedAngle(transform.forward, dirToOpponent, Vector3.up);
+        sensor.AddObservation(angleToOpponent / 180f);                           // 1
 
-        opponentPreviousPosition = opponentTransform.localPosition;
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -121,55 +114,37 @@ public class C2Agent : Agent
         // Shooting
         if (actions.DiscreteActions[0] == 1)
         {
-            AddReward(0.01f); // Small reward for attempting to shoot, encourages learning the timing
             Shoot();
         }
 
 
-        // Strafing
-        float moveX = actions.ContinuousActions[0];
-        float moveZ = actions.ContinuousActions[1];
-        transform.localPosition += new Vector3(moveX, 0f, moveZ) * strafeSpeed * Time.deltaTime;
+        // Moving
+        float moveX = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
+        float moveZ = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
 
-        // Rotation — agent turns to track opponent
-        float rotateY = actions.ContinuousActions[2];
-        transform.Rotate(0f, rotateY * rotationSpeed * Time.deltaTime, 0f);
+        // Debug.Log($"MoveX: {moveX}, MoveZ: {moveZ}");
+
+        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+        transform.localPosition += move * strafeSpeed * Time.deltaTime;
+
+
+        Vector3 dirToOpponent = (opponentTransform.localPosition - transform.localPosition).normalized;
+        Quaternion targetRotation = Quaternion.LookRotation(dirToOpponent);
+        float aimOffset = actions.ContinuousActions[2] * 30f;
+        targetRotation *= Quaternion.Euler(0f, aimOffset, 0f);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
         // Step penalty
         AddReward(-0.001f);
 
 
-        // Reward for facing the opponent — encourages active tracking
-        Vector3 dirToOpponent = (opponentTransform.localPosition - transform.localPosition).normalized;
-        float facingDot = Vector3.Dot(transform.forward, dirToOpponent);
-        AddReward(facingDot * 0.001f);
-
-        if (facingDot < 0f)
-        {
-            facingAwaySteps++;
-            AddReward(-0.05f);
-            if (facingAwaySteps > 50)
-            {
-                AddReward(-1f);
-                floorMeshRenderer.material = loseMaterial;
-                EndEpisode();
-            }
-        }
-        else
-        {
-            facingAwaySteps = 0;
-            if      (facingDot < 0.8f  && actions.DiscreteActions[0] == 1) AddReward(-0.04f);  // Facing sideways while shooting
-            else if (facingDot > 0.95f  && actions.DiscreteActions[0] == 1) AddReward(+0.05f);  // Well aimed and shooting
-            else if (facingDot > 0.8f  && Mathf.Abs(actions.ContinuousActions[2]) > 0.05f)  AddReward(-0.01f);      // Spinning when aimed
-        }
+      
 
 
-                // Range reward — fixed logic
+        // Range reward
         float dist = Vector3.Distance(transform.localPosition, opponentTransform.localPosition);
-        if (dist >= 4f && dist <= 6f && facingDot > 0.7f)
+        if (dist >= 4f && dist <= 6f)
             AddReward(+0.01f);
-        else
-            AddReward(-0.01f);
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)

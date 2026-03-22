@@ -3,24 +3,39 @@ using UnityEngine;
 public class OpponentStrafe : MonoBehaviour
 {
     [Header("Strafe Settings")]
-    public float speed = 1.5f;
-    public float range = 2f; // How far left/right from spawn point
+    private float speed = 1f;
+    private float range = 2f; // How far left/right from spawn point
+
+    private float direction = 1f;
+
+    private Rigidbody rb;
 
     private Vector3 origin;
 
     private void Start()
     {
+        rb = GetComponent<Rigidbody>();
         origin = transform.localPosition;
     }
 
     public void ResetPosition()
     {
-        transform.localPosition = origin;
+        // transform.localPosition = origin;
+        // rb.linearVelocity = Vector3.zero;
+        // direction = 1f; // Reset direction to default
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        float x = origin.x + Mathf.Sin(Time.time * speed) * range;
-        transform.localPosition = new Vector3(x, origin.y, origin.z);
+        rb.linearVelocity = Vector3.right * direction * speed;
+
+        float distFromOrigin = transform.localPosition.x - origin.x;
+        if (distFromOrigin >= range)
+            direction = -1f;
+        else if (distFromOrigin <= -range)
+            direction = 1f;
+
+
     }
+
 }

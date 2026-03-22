@@ -6,6 +6,8 @@ public class Opponent : MonoBehaviour
     public int StartingHealth = 100;
     private int CurrentHealth;
 
+    private Rigidbody rb;
+    private Vector3 startPosition;
     private OpponentStrafe OpponentStrafe;
 
     // private Vector3 startPosition;
@@ -13,6 +15,7 @@ public class Opponent : MonoBehaviour
     {
         // startPosition = transform.position;
         CurrentHealth = StartingHealth;
+        rb = GetComponent<Rigidbody>();
 
         OpponentStrafe = GetComponent<OpponentStrafe>();
 
