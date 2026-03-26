@@ -19,13 +19,14 @@ public class MLAgent : Agent
 
     [Header("Shooting")]
     public Transform shootingPoint;
+
+    public Transform bulletSpawnPoint;
     private int damage = 100;
     private bool shotAvailable = true;
     private int stepsUntilNextShotIsAvailable = 0;
 
     [Header("Projectile")]
     public GameObject bulletPrefab;
-    public float bulletSpeed = 20f;
 
     [Header("Strafing")]
     private float strafeSpeed = 3f;
@@ -44,29 +45,19 @@ public class MLAgent : Agent
     private void Shoot()
     {
         if (!shotAvailable) return;
-        // Spawn bullet
-        GameObject bullet = Instantiate(bulletPrefab, shootingPoint.position, shootingPoint.rotation);
 
-        // Give it velocity
-        Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
-        bulletRb.linearVelocity = shootingPoint.forward * bulletSpeed;
+        // Spawn bullet
+        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
+        // Debug.Log("Bullet Spawned at " + bulletSpawnPoint.position);
 
         // Pass shooter + target to bullet
         Bullet b = bullet.GetComponent<Bullet>();
-        b.target = opponentTransform;
         b.shooter = this;
         b.damage = damage;
         b.targetLayerName = "Opponent";
 
 
         // Cooldown
-        shotAvailable = false;
-        stepsUntilNextShotIsAvailable = 50;
-
-        // Cleanup
-        Destroy(bullet, 2f);
-
-
         shotAvailable = false;
         stepsUntilNextShotIsAvailable = 50;
     }
@@ -214,15 +205,25 @@ public class MLAgent : Agent
     {
         if (other.CompareTag("Wall"))
         {
+            Academy.Instance.StatsRecorder.Add("Agent/Wall Deaths", 1, StatAggregationMethod.Sum);
             floorMeshRenderer.material = loseMaterial;
             AddReward(-1.0f);
             EndEpisode();
         }
     }
 
+    public void RegisterDeathByEnemy()
+    {
+        Debug.Log("Agent was killed by enemy.");
+        Academy.Instance.StatsRecorder.Add("Enemy/Kills", 1, StatAggregationMethod.Sum);
+        AddReward(-1f);
+        floorMeshRenderer.material = loseMaterial;
+        EndEpisode();
+    }
+
     public void RegisterKill()
     {
-        Academy.Instance.StatsRecorder.Add("Agent/Kills", 1);
+        Academy.Instance.StatsRecorder.Add("Agent/Kills", 1, StatAggregationMethod.Sum);
 
         AddReward(3.0f);
         floorMeshRenderer.material = winMaterial;

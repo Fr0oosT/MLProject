@@ -18,23 +18,19 @@ public class AgentHealth : MonoBehaviour
         currentHealth = startingHealth;
     }
 
-    public void TakeDamage(int amount, Opponent shooter)
+    public void TakeDamage(int amount)
     {
         currentHealth -= amount;
 
         if (currentHealth <= 0)
         {
-            Die(shooter);
+            DieByEnemy();
         }
     }
 
-    private void Die(Opponent shooter)
+    private void DieByEnemy()
     {
-        Academy.Instance.StatsRecorder.Add("Enemy/Kills", 1);
-        // Negative reward for dying
-        agent.AddReward(-1f);
-
-        // End the episode
-        agent.EndEpisode();
+        agent.RegisterDeathByEnemy();
     }
+
 }

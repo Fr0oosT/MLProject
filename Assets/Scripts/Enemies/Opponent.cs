@@ -11,13 +11,14 @@ public class Opponent : MonoBehaviour
 
     [Header("Shooting")]
     public Transform shootingPoint;
-    public int damage = 20;
+    public Transform bulletSpawnPoint;
+    private int damage = 100;
     public float reload = 1f; // how long the opponent has to wait between shots
     private float reloadTimer = 0f; // countdown until next shot
 
     [Header("Projectile")]
     public GameObject bulletPrefab;
-    public float bulletSpeed = 20f;
+
 
 
     [Header("Target")]
@@ -35,7 +36,7 @@ public class Opponent : MonoBehaviour
         reloadTimer -= Time.deltaTime;
 
         // Face the agent
-        Vector3 dir = agentTransform.position - transform.position;
+        Vector3 dir = (agentTransform.position - shootingPoint.position).normalized;
         dir.y = 0;
         transform.rotation = Quaternion.LookRotation(dir);
 
@@ -47,28 +48,23 @@ public class Opponent : MonoBehaviour
         if (reloadTimer > 0f) return;
 
         // Spawn bullet
-        GameObject bullet = Instantiate(bulletPrefab, shootingPoint.position, shootingPoint.rotation);
-
-        // Give it velocity
-        Rigidbody brb = bullet.GetComponent<Rigidbody>();
-        brb.linearVelocity = shootingPoint.forward * bulletSpeed;
+        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
 
         // Pass target + shooter to bullet
         Bullet b = bullet.GetComponent<Bullet>();
-        b.target = agentTransform;
         b.damage = damage;
+        // b.bulletSpeed = 40f;
         b.targetLayerName = "Agent";
+        b.opponentShooter = this;
 
 
         // Reset reload timer
         reloadTimer = reload;
-
-        // Cleanup
-        Destroy(bullet, 2f);
     }
 
-    public void GetShot(int damage, Agent shooter)
+    public void GetShot(int damage, MLAgent shooter)
     {
+        // Debug.Log($"GetShot!");
         CurrentHealth -= damage;
         if (CurrentHealth <= 0)
         {
@@ -76,14 +72,11 @@ public class Opponent : MonoBehaviour
         }
     }
 
-    private void Die(Agent shooter)
+    private void Die(MLAgent shooter)
     {
-        MLAgent shootingAgent = shooter as MLAgent;
-        if (shootingAgent != null)
-        {
-            shootingAgent.RegisterKill();
-        }
+        shooter.RegisterKill();
     }
+
 
     public void Respawn()
     {
