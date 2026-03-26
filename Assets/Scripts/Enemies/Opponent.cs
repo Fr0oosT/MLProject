@@ -12,8 +12,10 @@ public class Opponent : MonoBehaviour
     [Header("Shooting")]
     public Transform shootingPoint;
     public Transform bulletSpawnPoint;
+
+    private int stepsAlive = 0;
     private int damage = 100;
-    public float reload = 1f; // how long the opponent has to wait between shots
+    private float reload = 2f; // how long the opponent has to wait between shots
     private float reloadTimer = 0f; // countdown until next shot
 
     [Header("Projectile")]
@@ -33,6 +35,7 @@ public class Opponent : MonoBehaviour
 
     private void Update()
     {
+        stepsAlive++;
         reloadTimer -= Time.deltaTime;
 
         // Face the agent
@@ -74,12 +77,14 @@ public class Opponent : MonoBehaviour
 
     private void Die(MLAgent shooter)
     {
+        Academy.Instance.StatsRecorder.Add("Enemy/Amount of Steps Alive", stepsAlive, StatAggregationMethod.Average);
         shooter.RegisterKill();
     }
 
 
     public void Respawn()
     {
+        stepsAlive = 0;
         CurrentHealth = StartingHealth;
         opponentStrafe.ResetPosition();
     }

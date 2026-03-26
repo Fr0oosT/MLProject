@@ -3,7 +3,7 @@ using UnityEngine;
 public class OpponentStrafe : MonoBehaviour
 {
     [Header("Strafe Settings")]
-    private float speed = 1f;
+    private float speed = 1.5f;
     private float range = 2f; // How far left/right from spawn point
 
     private float direction = 1f;

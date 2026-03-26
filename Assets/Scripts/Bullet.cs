@@ -5,32 +5,34 @@ public class Bullet : MonoBehaviour
     public int damage = 100;
     public MLAgent shooter;              // null if shooter is opponent
     public Opponent opponentShooter;     // null if shooter is agent
-    public float bulletSpeed = 10f;
-    public float lifetime = 3f;
+    public float bulletSpeed = 5f;
+    public float lifetime = 2f;
 
     public string targetLayerName;       // "Opponent" or "Agent"
 
     private void Start()
     {
-        // Destroy(gameObject, lifetime);
+        Destroy(gameObject, lifetime);
     }
 
     private void Update()
     {
         transform.position += transform.forward * bulletSpeed * Time.deltaTime;
+        Debug.DrawRay(transform.position, transform.forward * 0.5f, Color.red, 0.1f);
+
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Layer check
-        if (other.gameObject.layer != LayerMask.NameToLayer(targetLayerName))
+
+        // Wall check
+        if (other.CompareTag("Wall"))
         {
             Destroy(gameObject);
             return;
         }
-
-        // Wall check
-        if (other.CompareTag("Wall"))
+        // Layer check
+        if (other.gameObject.layer != LayerMask.NameToLayer(targetLayerName))
         {
             Destroy(gameObject);
             return;

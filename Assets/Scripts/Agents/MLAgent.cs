@@ -25,11 +25,13 @@ public class MLAgent : Agent
     private bool shotAvailable = true;
     private int stepsUntilNextShotIsAvailable = 0;
 
+    private int stepsAlive = 0;
+
     [Header("Projectile")]
     public GameObject bulletPrefab;
 
     [Header("Strafing")]
-    private float strafeSpeed = 3f;
+    private float strafeSpeed = 5f;
     private float rotationSpeed = 300f;
 
     private AgentHealth health;
@@ -48,7 +50,7 @@ public class MLAgent : Agent
 
         // Spawn bullet
         GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
-        // Debug.Log("Bullet Spawned at " + bulletSpawnPoint.position);
+        Debug.Log("Bullet Spawned at " + bulletSpawnPoint.position);
 
         // Pass shooter + target to bullet
         Bullet b = bullet.GetComponent<Bullet>();
@@ -59,23 +61,14 @@ public class MLAgent : Agent
 
         // Cooldown
         shotAvailable = false;
-        stepsUntilNextShotIsAvailable = 50;
+        stepsUntilNextShotIsAvailable = 20;
     }
 
-
-    private void FixedUpdate()
-    {
-        if (!shotAvailable)
-        {
-            stepsUntilNextShotIsAvailable--;
-            if (stepsUntilNextShotIsAvailable <= 0)
-                shotAvailable = true;
-        }
-    }
 
     public override void OnEpisodeBegin()
     {
         shotAvailable = true;
+        stepsAlive = 0;
 
         transform.localPosition = startPosition;
 
@@ -133,11 +126,20 @@ public class MLAgent : Agent
 
     public override void OnActionReceived(ActionBuffers actions)
     {
+        if (!shotAvailable)
+        {
+            stepsUntilNextShotIsAvailable--;
+            if (stepsUntilNextShotIsAvailable <= 0)
+                shotAvailable = true;
+        }
+        stepsAlive++;
         // Shooting
         if (actions.DiscreteActions[0] == 1)
         {
             Shoot();
         }
+
+        // Debug.Log("Shoot action: " + actions.DiscreteActions[0]);
 
         AddReward(+0.0005f); // Small reward for staying alive each step
 
@@ -205,6 +207,7 @@ public class MLAgent : Agent
     {
         if (other.CompareTag("Wall"))
         {
+            Academy.Instance.StatsRecorder.Add("Agent/Amount of Steps Alive", stepsAlive, StatAggregationMethod.Average);
             Academy.Instance.StatsRecorder.Add("Agent/Wall Deaths", 1, StatAggregationMethod.Sum);
             floorMeshRenderer.material = loseMaterial;
             AddReward(-1.0f);
@@ -214,7 +217,7 @@ public class MLAgent : Agent
 
     public void RegisterDeathByEnemy()
     {
-        Debug.Log("Agent was killed by enemy.");
+        Academy.Instance.StatsRecorder.Add("Agent/Amount of Steps Alive", stepsAlive, StatAggregationMethod.Average);
         Academy.Instance.StatsRecorder.Add("Enemy/Kills", 1, StatAggregationMethod.Sum);
         AddReward(-1f);
         floorMeshRenderer.material = loseMaterial;
@@ -224,7 +227,7 @@ public class MLAgent : Agent
     public void RegisterKill()
     {
         Academy.Instance.StatsRecorder.Add("Agent/Kills", 1, StatAggregationMethod.Sum);
-
+        Academy.Instance.StatsRecorder.Add("Agent/Amount of Steps Alive", stepsAlive, StatAggregationMethod.Average);
         AddReward(3.0f);
         floorMeshRenderer.material = winMaterial;
         EndEpisode();
