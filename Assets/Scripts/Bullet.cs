@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
@@ -8,14 +9,17 @@ public class Bullet : MonoBehaviour
     public float lifetime = 3f;
 
     public string targetLayerName; // "Opponent" for agent bullets, "Agent" for opponent bullets
-
-    private void Start()
+    private bool armed = false; // short delay before bullet can deal damage, to prevent self-collision on spawn
+    private IEnumerator Start()
     {
+        yield return new WaitForSeconds(0.05f);
+        armed = true;
         Destroy(gameObject, lifetime);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
+        if(!armed) return;
         // 1. Check correct layer
         if (collision.collider.gameObject.layer != LayerMask.NameToLayer(targetLayerName))
         {
@@ -30,6 +34,14 @@ public class Bullet : MonoBehaviour
             return;
         }
 
+        if (collision.collider.CompareTag("Wall"))
+        {
+            Debug.Log("Bullet hit wall and was destroyed.");
+            Destroy(gameObject);
+            return;
+        }
+
+
         // 3. Apply damage depending on target type
         if (targetLayerName == "Opponent")
         {
@@ -37,7 +49,7 @@ public class Bullet : MonoBehaviour
             if (opp != null)
             {
                 opp.GetShot(damage, shooter);
-                shooter?.AddReward(+0.3f); // reward only if shooter is the agent
+                shooter?.AddReward(+3f); 
             }
         }
         else if (targetLayerName == "Agent")

@@ -30,6 +30,7 @@ public class AgentHealth : MonoBehaviour
 
     private void Die(Opponent shooter)
     {
+        Academy.Instance.StatsRecorder.Add("Enemy/Kills", 1);
         // Negative reward for dying
         agent.AddReward(-1f);
 

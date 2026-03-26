@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 5833185320848430431}
   - component: {fileID: 5289258797162142494}
   - component: {fileID: 8994520269658463535}
-  - component: {fileID: -6882398763423230710}
-  m_Layer: 0
+  - component: {fileID: -1171256378639990722}
+  m_Layer: 8
   m_Name: Bullet
   m_TagString: Bullet
   m_Icon: {fileID: 0}
@@ -140,8 +140,8 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
-  m_CollisionDetection: 0
---- !u!114 &-6882398763423230710
+  m_CollisionDetection: 2
+--- !u!114 &-1171256378639990722
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -150,6 +150,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 2945978606866661294}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dc096d05116aca94b8815495ee56c860, type: 3}
+  m_Script: {fileID: 11500000, guid: 4c4fdef4a4542cb488a49f8091f34ccd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
+  damage: 100
+  target: {fileID: 0}
+  shooter: {fileID: 0}
+  lifetime: 3
+  targetLayerName: 
