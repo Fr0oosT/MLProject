@@ -6,11 +6,11 @@ public class AgentHealth : MonoBehaviour
     public int startingHealth = 100;
     public int currentHealth;
 
-    private C3Agent agent;
+    private MLAgent agent;
 
     private void Awake()
     {
-        agent = GetComponent<C3Agent>();
+        agent = GetComponent<MLAgent>();
     }
 
     public void ResetHealth()

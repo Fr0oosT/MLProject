@@ -4,7 +4,7 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using UnityEngine.InputSystem;
 
-public class C3Agent : Agent
+public class MLAgent : Agent
 {
     private Rigidbody rb;
     private Vector3 startPosition;
@@ -23,6 +23,10 @@ public class C3Agent : Agent
     private bool shotAvailable = true;
     private int stepsUntilNextShotIsAvailable = 0;
 
+    [Header("Projectile")]
+    public GameObject bulletPrefab;
+    public float bulletSpeed = 20f;
+
     [Header("Strafing")]
     private float strafeSpeed = 3f;
     private float rotationSpeed = 300f;
@@ -39,27 +43,33 @@ public class C3Agent : Agent
 
     private void Shoot()
     {
-        if (!shotAvailable) return;
+        // Spawn bullet
+        GameObject bullet = Instantiate(bulletPrefab, shootingPoint.position, shootingPoint.rotation);
 
-        int layerMask = 1 << LayerMask.NameToLayer("Opponent");
-        Ray ray = new Ray(shootingPoint.position, shootingPoint.forward);
-        RaycastHit hit;
+        // Give it velocity
+        Rigidbody bulletRb = bullet.GetComponent<Rigidbody>();
+        bulletRb.linearVelocity = shootingPoint.forward * bulletSpeed;
 
-        Debug.DrawRay(ray.origin, ray.direction * 100, Color.red, 1.0f);
+        // Pass shooter + target to bullet
+        Bullet b = bullet.GetComponent<Bullet>();
+        b.target = opponentTransform;
+        b.shooter = this;
+        b.damage = damage;
+        b.targetLayerName = "Opponent";
 
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
-        {
-            Opponent opponent = hit.collider.GetComponent<Opponent>();
-            if (opponent != null && opponent.transform == opponentTransform)
-            {
-                opponent.GetShot(damage, this);
-                AddReward(0.3f);
-            }
-            else
-            {
-                AddReward(-0.1f); // Hit something else on opponent layer (e.g. wall)
-            }
-        }
+
+        // Reward shaping
+        if (IsOpponentInSight())
+            AddReward(+0.1f);
+        else
+            AddReward(-0.05f);
+
+        // Cooldown
+        shotAvailable = false;
+        stepsUntilNextShotIsAvailable = 50;
+
+        // Cleanup
+        Destroy(bullet, 2f);
 
 
         shotAvailable = false;
@@ -114,14 +124,7 @@ public class C3Agent : Agent
         sensor.AddObservation(angleToOpponent / 180f);                           // 1
 
         // Line of sight check
-        bool inSight = false;
-        RaycastHit hit;
-        Vector3 dir = (opponentTransform.position - shootingPoint.position).normalized;
-        if (Physics.Raycast(shootingPoint.position, dir, out hit, Mathf.Infinity, 1 << LayerMask.NameToLayer("Opponent")))
-        {
-            if (hit.collider.transform == opponentTransform)
-                inSight = true;
-        }
+        bool inSight = IsOpponentInSight();
         sensor.AddObservation(inSight ? 1f : 0f); // 1
 
         // Last seen position (world space relative to the agent)
@@ -131,11 +134,24 @@ public class C3Agent : Agent
         sensor.AddObservation(health.currentHealth / 100f); // 1
     }
 
+    private bool IsOpponentInSight()
+    {
+        RaycastHit hit;
+        Vector3 dir = (opponentTransform.position - shootingPoint.position).normalized;
+        if (Physics.Raycast(shootingPoint.position, dir, out hit, Mathf.Infinity, 1 << LayerMask.NameToLayer("Opponent")))
+        {
+            if (hit.collider.transform == opponentTransform)
+                return true;
+        }
+        return false;
+    }
+
     public override void OnActionReceived(ActionBuffers actions)
     {
         // Shooting
         if (actions.DiscreteActions[0] == 1)
         {
+            Debug.Log("Shoot action received from OnActionReceived");
             Shoot();
         }
 
@@ -161,13 +177,24 @@ public class C3Agent : Agent
         // Step penalty
         AddReward(-0.001f);
 
+        bool inSight = IsOpponentInSight();
 
-      
+        if (inSight)
+            AddReward(+0.01f); // Reward for having opponent in sight
+        
+        if(actions.DiscreteActions[0] == 1 && !inSight)
+            AddReward(-0.05f); // Additional reward for shooting while opponent is in sight
 
-
+        if(moveX != 0f || moveZ != 0f)
+            AddReward(-0.005f); // Additional reward for shooting while opponent is in sight
         // Range reward
         float dist = Vector3.Distance(transform.localPosition, opponentTransform.localPosition);
         if (dist >= 4f && dist <= 6f)
+            AddReward(+0.01f);
+
+        Vector3 toOpponent = (opponentTransform.position - transform.position).normalized;
+        float perpendicular = Vector3.Dot(move.normalized, Vector3.Cross(toOpponent, Vector3.up));
+        if (Mathf.Abs(perpendicular) > 0.7f) // strong sideways movement
             AddReward(+0.01f);
     }
 

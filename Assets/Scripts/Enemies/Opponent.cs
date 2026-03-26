@@ -15,6 +15,11 @@ public class Opponent : MonoBehaviour
     public float reload = 1f; // how long the opponent has to wait between shots
     private float reloadTimer = 0f; // countdown until next shot
 
+    [Header("Projectile")]
+    public GameObject bulletPrefab;
+    public float bulletSpeed = 20f;
+
+
     [Header("Target")]
     public Transform agentTransform; 
 
@@ -41,22 +46,25 @@ public class Opponent : MonoBehaviour
     {
         if (reloadTimer > 0f) return;
 
-        int layerMask = 1 << LayerMask.NameToLayer("Agent");
-        Ray ray = new Ray(shootingPoint.position, shootingPoint.forward);
-        RaycastHit hit;
+        // Spawn bullet
+        GameObject bullet = Instantiate(bulletPrefab, shootingPoint.position, shootingPoint.rotation);
 
-        Debug.DrawRay(ray.origin, ray.direction * 100, Color.blue, 1.0f);
+        // Give it velocity
+        Rigidbody brb = bullet.GetComponent<Rigidbody>();
+        brb.linearVelocity = shootingPoint.forward * bulletSpeed;
 
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
-        {
-            AgentHealth agentHealth = hit.collider.GetComponent<AgentHealth>();
-            if (agentHealth != null && agentHealth.gameObject.transform == agentTransform)
-            {
-                agentHealth.TakeDamage(damage, this);
-            }
-        }
+        // Pass target + shooter to bullet
+        Bullet b = bullet.GetComponent<Bullet>();
+        b.target = agentTransform;
+        b.damage = damage;
+        b.targetLayerName = "Agent";
 
+
+        // Reset reload timer
         reloadTimer = reload;
+
+        // Cleanup
+        Destroy(bullet, 2f);
     }
 
     public void GetShot(int damage, Agent shooter)
@@ -70,7 +78,7 @@ public class Opponent : MonoBehaviour
 
     private void Die(Agent shooter)
     {
-        C3Agent shootingAgent = shooter as C3Agent;
+        MLAgent shootingAgent = shooter as MLAgent;
         if (shootingAgent != null)
         {
             shootingAgent.RegisterKill();
