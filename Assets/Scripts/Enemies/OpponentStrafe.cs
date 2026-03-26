@@ -20,9 +20,13 @@ public class OpponentStrafe : MonoBehaviour
 
     public void ResetPosition()
     {
-        // transform.localPosition = origin;
-        // rb.linearVelocity = Vector3.zero;
-        // direction = 1f; // Reset direction to default
+        Vector3 randomOffset = new Vector3(Random.Range(-1f, 1f), 0f, Random.Range(-1f, 1f));
+        transform.localPosition = origin + randomOffset;
+
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        direction = Random.value > 0.5f ? 1f : -1f;
     }
 
     private void FixedUpdate()

@@ -4,7 +4,7 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using UnityEngine.InputSystem;
 
-public class C2Agent : Agent
+public class C3Agent : Agent
 {
     private Rigidbody rb;
     private Vector3 startPosition;
@@ -27,11 +27,14 @@ public class C2Agent : Agent
     private float strafeSpeed = 3f;
     private float rotationSpeed = 300f;
 
+    private AgentHealth health;
+
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody>();
         opponentRb = opponentTransform.GetComponent<Rigidbody>();
         startPosition = transform.localPosition;
+        health = GetComponent<AgentHealth>();
     }
 
     private void Shoot()
@@ -63,6 +66,7 @@ public class C2Agent : Agent
         stepsUntilNextShotIsAvailable = 50;
     }
 
+
     private void FixedUpdate()
     {
         if (!shotAvailable)
@@ -84,7 +88,9 @@ public class C2Agent : Agent
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
 
+        health.ResetHealth();
 
+        opponentTransform.GetComponent<Opponent>().Respawn();
         
     }
 
@@ -107,6 +113,22 @@ public class C2Agent : Agent
         float angleToOpponent = Vector3.SignedAngle(transform.forward, dirToOpponent, Vector3.up);
         sensor.AddObservation(angleToOpponent / 180f);                           // 1
 
+        // Line of sight check
+        bool inSight = false;
+        RaycastHit hit;
+        Vector3 dir = (opponentTransform.position - shootingPoint.position).normalized;
+        if (Physics.Raycast(shootingPoint.position, dir, out hit, Mathf.Infinity, 1 << LayerMask.NameToLayer("Opponent")))
+        {
+            if (hit.collider.transform == opponentTransform)
+                inSight = true;
+        }
+        sensor.AddObservation(inSight ? 1f : 0f); // 1
+
+        // Last seen position (world space relative to the agent)
+        Vector3 LastSeen = inSight ? transform.InverseTransformPoint(opponentTransform.position) : transform.InverseTransformPoint(opponentTransform.position + Vector3.zero);
+        sensor.AddObservation(LastSeen); // 3
+
+        sensor.AddObservation(health.currentHealth / 100f); // 1
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -116,6 +138,8 @@ public class C2Agent : Agent
         {
             Shoot();
         }
+
+        AddReward(+0.0005f); // Small reward for staying alive each step
 
 
         // Moving

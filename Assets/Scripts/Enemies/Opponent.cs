@@ -7,19 +7,57 @@ public class Opponent : MonoBehaviour
     private int CurrentHealth;
 
     private Rigidbody rb;
-    private Vector3 startPosition;
-    private OpponentStrafe OpponentStrafe;
+    private OpponentStrafe opponentStrafe;
 
-    // private Vector3 startPosition;
+    [Header("Shooting")]
+    public Transform shootingPoint;
+    public int damage = 20;
+    public float reload = 1f; // how long the opponent has to wait between shots
+    private float reloadTimer = 0f; // countdown until next shot
+
+    [Header("Target")]
+    public Transform agentTransform; 
+
     void Start()
     {
-        // startPosition = transform.position;
         CurrentHealth = StartingHealth;
         rb = GetComponent<Rigidbody>();
+        opponentStrafe = GetComponent<OpponentStrafe>();
+    }
 
-        OpponentStrafe = GetComponent<OpponentStrafe>();
+    private void Update()
+    {
+        reloadTimer -= Time.deltaTime;
 
-    } 
+        // Face the agent
+        Vector3 dir = agentTransform.position - transform.position;
+        dir.y = 0;
+        transform.rotation = Quaternion.LookRotation(dir);
+
+        TryShoot();
+    }
+
+    private void TryShoot()
+    {
+        if (reloadTimer > 0f) return;
+
+        int layerMask = 1 << LayerMask.NameToLayer("Agent");
+        Ray ray = new Ray(shootingPoint.position, shootingPoint.forward);
+        RaycastHit hit;
+
+        Debug.DrawRay(ray.origin, ray.direction * 100, Color.blue, 1.0f);
+
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, layerMask))
+        {
+            AgentHealth agentHealth = hit.collider.GetComponent<AgentHealth>();
+            if (agentHealth != null && agentHealth.gameObject.transform == agentTransform)
+            {
+                agentHealth.TakeDamage(damage, this);
+            }
+        }
+
+        reloadTimer = reload;
+    }
 
     public void GetShot(int damage, Agent shooter)
     {
@@ -32,25 +70,16 @@ public class Opponent : MonoBehaviour
 
     private void Die(Agent shooter)
     {
-        Debug.Log("Opponent died!");
-        C2Agent shootingAgent = shooter as C2Agent;
+        C3Agent shootingAgent = shooter as C3Agent;
         if (shootingAgent != null)
         {
             shootingAgent.RegisterKill();
         }
-        Respawn();
     }
 
-    private void Respawn()
+    public void Respawn()
     {
         CurrentHealth = StartingHealth;
-        
-        // transform.position = startPosition;
-        OpponentStrafe.ResetPosition();
-    }
-
-    private void OnMouseDown()
-    {
-        GetShot(StartingHealth, null);
+        opponentStrafe.ResetPosition();
     }
 }
