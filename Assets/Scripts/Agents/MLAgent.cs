@@ -43,6 +43,7 @@ public class MLAgent : Agent
 
     private void Shoot()
     {
+        if (!shotAvailable) return;
         // Spawn bullet
         GameObject bullet = Instantiate(bulletPrefab, shootingPoint.position, shootingPoint.rotation);
 
@@ -57,12 +58,6 @@ public class MLAgent : Agent
         b.damage = damage;
         b.targetLayerName = "Opponent";
 
-
-        // Reward shaping
-        if (IsOpponentInSight())
-            AddReward(+0.1f);
-        else
-            AddReward(-0.05f);
 
         // Cooldown
         shotAvailable = false;
@@ -113,7 +108,7 @@ public class MLAgent : Agent
         // Opponent velocity
         Vector3 localOpponentVelocity = transform.InverseTransformDirection(opponentRb.linearVelocity);
         sensor.AddObservation(localOpponentVelocity); // 3
-        // Debug.Log(localOpponentVelocity);
+
 
         // Agent facing direction relative to opponent
         Vector3 dirToOpponent = (opponentTransform.localPosition - transform.localPosition).normalized;
@@ -136,9 +131,8 @@ public class MLAgent : Agent
 
     private bool IsOpponentInSight()
     {
-        RaycastHit hit;
         Vector3 dir = (opponentTransform.position - shootingPoint.position).normalized;
-        if (Physics.Raycast(shootingPoint.position, dir, out hit, Mathf.Infinity, 1 << LayerMask.NameToLayer("Opponent")))
+        if (Physics.Raycast(shootingPoint.position, dir, out RaycastHit hit, Mathf.Infinity, 1 << LayerMask.NameToLayer("Opponent")))
         {
             if (hit.collider.transform == opponentTransform)
                 return true;
@@ -151,7 +145,6 @@ public class MLAgent : Agent
         // Shooting
         if (actions.DiscreteActions[0] == 1)
         {
-            Debug.Log("Shoot action received from OnActionReceived");
             Shoot();
         }
 
@@ -162,7 +155,7 @@ public class MLAgent : Agent
         float moveX = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
         float moveZ = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
 
-        // Debug.Log($"MoveX: {moveX}, MoveZ: {moveZ}");
+  
 
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         transform.localPosition += move * strafeSpeed * Time.deltaTime;
@@ -180,22 +173,30 @@ public class MLAgent : Agent
         bool inSight = IsOpponentInSight();
 
         if (inSight)
-            AddReward(+0.01f); // Reward for having opponent in sight
+            AddReward(+0.0005f); // Reward for having opponent in sight
         
         if(actions.DiscreteActions[0] == 1 && !inSight)
-            AddReward(-0.05f); // Additional reward for shooting while opponent is in sight
+            AddReward(-0.05f); // Penalty when shooting blindly
+
+        if(IsOpponentInSight() && !shotAvailable)
+            AddReward(-0.02f); // Penalty for trying to shoot while on cooldown
 
         if(moveX != 0f || moveZ != 0f)
             AddReward(-0.005f); // Additional reward for shooting while opponent is in sight
         // Range reward
+
         float dist = Vector3.Distance(transform.localPosition, opponentTransform.localPosition);
         if (dist >= 4f && dist <= 6f)
-            AddReward(+0.01f);
+            AddReward(+0.02f);
+        
+        if (dist < 1.0f)
+            AddReward(-0.05f); // Too close is bad
 
         Vector3 toOpponent = (opponentTransform.position - transform.position).normalized;
         float perpendicular = Vector3.Dot(move.normalized, Vector3.Cross(toOpponent, Vector3.up));
         if (Mathf.Abs(perpendicular) > 0.7f) // strong sideways movement
             AddReward(+0.01f);
+        
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
@@ -221,7 +222,9 @@ public class MLAgent : Agent
 
     public void RegisterKill()
     {
-        AddReward(1.0f);
+        Academy.Instance.StatsRecorder.Add("Agent/Kills", 1);
+
+        AddReward(3.0f);
         floorMeshRenderer.material = winMaterial;
         EndEpisode();
     }
