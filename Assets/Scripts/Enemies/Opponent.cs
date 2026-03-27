@@ -3,45 +3,65 @@ using Unity.MLAgents;
 
 public class Opponent : MonoBehaviour
 {
+    [Header("Health")]
     public int StartingHealth = 100;
     private int CurrentHealth;
 
-    private Rigidbody rb;
-    private OpponentStrafe opponentStrafe;
+    [Header("Movement")]
+    public float moveSpeed = 3f;
+    public float strafeSpeed = 2f;
+    public float attackDistance = 7f;
+    public float tooCloseDistance = 3f;
+
+    private float strafeDir = 1f;
 
     [Header("Shooting")]
     public Transform shootingPoint;
     public Transform bulletSpawnPoint;
-
-    private int stepsAlive = 0;
-    private int damage = 100;
-    private float reload = 2f; // how long the opponent has to wait between shots
-    private float reloadTimer = 0f; // countdown until next shot
-
-    [Header("Projectile")]
     public GameObject bulletPrefab;
-
-
+    public float reload = 1f;
+    private float reloadTimer = 0f;
+    private int damage = 100;
 
     [Header("Target")]
-    public Transform agentTransform; 
+    public Transform agentTransform;
+
+    private int stepsAlive = 0;
 
     void Start()
     {
         CurrentHealth = StartingHealth;
-        rb = GetComponent<Rigidbody>();
-        opponentStrafe = GetComponent<OpponentStrafe>();
+        strafeDir = Random.value > 0.5f ? 1f : -1f;
     }
 
-    private void Update()
+    void Update()
     {
         stepsAlive++;
         reloadTimer -= Time.deltaTime;
 
+        Vector3 toAgent = agentTransform.position - transform.position;
+        toAgent.y = 0;
+        float distance = toAgent.magnitude;
+
         // Face the agent
-        Vector3 dir = (agentTransform.position - shootingPoint.position).normalized;
-        dir.y = 0;
-        transform.rotation = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.LookRotation(toAgent.normalized);
+
+        // Movement logic
+        if (distance > attackDistance)
+        {
+            // Close the gap aggressively
+            transform.position += transform.forward * moveSpeed * Time.deltaTime;
+        }
+        else if (distance > tooCloseDistance)
+        {
+            // Strafe while maintaining pressure
+            transform.position += transform.right * strafeDir * strafeSpeed * Time.deltaTime;
+        }
+        else
+        {
+            // Too close → back up
+            transform.position -= transform.forward * moveSpeed * 0.5f * Time.deltaTime;
+        }
 
         TryShoot();
     }
@@ -50,29 +70,21 @@ public class Opponent : MonoBehaviour
     {
         if (reloadTimer > 0f) return;
 
-        // Spawn bullet
         GameObject bullet = Instantiate(bulletPrefab, bulletSpawnPoint.position, bulletSpawnPoint.rotation);
 
-        // Pass target + shooter to bullet
         Bullet b = bullet.GetComponent<Bullet>();
         b.damage = damage;
-        // b.bulletSpeed = 40f;
         b.targetLayerName = "Agent";
         b.opponentShooter = this;
 
-
-        // Reset reload timer
         reloadTimer = reload;
     }
 
     public void GetShot(int damage, MLAgent shooter)
     {
-        // Debug.Log($"GetShot!");
         CurrentHealth -= damage;
         if (CurrentHealth <= 0)
-        {
             Die(shooter);
-        }
     }
 
     private void Die(MLAgent shooter)
@@ -81,11 +93,10 @@ public class Opponent : MonoBehaviour
         shooter.RegisterKill();
     }
 
-
     public void Respawn()
     {
         stepsAlive = 0;
         CurrentHealth = StartingHealth;
-        opponentStrafe.ResetPosition();
+        strafeDir = Random.value > 0.5f ? 1f : -1f;
     }
 }

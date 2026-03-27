@@ -111,6 +111,26 @@ public class MLAgent : Agent
         sensor.AddObservation(LastSeen); // 3
 
         sensor.AddObservation(health.currentHealth / 100f); // 1
+
+        Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
+        Vector3 nearestBulletDir = Vector3.zero;
+        float nearestBulletDist = 1f;
+
+        foreach (var b in bullets)
+        {
+            Vector3 toBullet = b.transform.position - transform.position;
+            float bulletDist = toBullet.magnitude;
+
+            if (bulletDist < nearestBulletDist)
+            {
+                nearestBulletDist = bulletDist;
+                nearestBulletDir = transform.InverseTransformDirection(toBullet.normalized);
+            }
+        }
+
+        sensor.AddObservation(nearestBulletDir);   // 3
+        sensor.AddObservation(nearestBulletDist);  // 1
+
     }
 
     private bool IsOpponentInSight()
@@ -123,6 +143,7 @@ public class MLAgent : Agent
         }
         return false;
     }
+
 
     public override void OnActionReceived(ActionBuffers actions)
     {
@@ -153,7 +174,6 @@ public class MLAgent : Agent
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
         transform.localPosition += move * strafeSpeed * Time.deltaTime;
 
-
         Vector3 dirToOpponent = (opponentTransform.localPosition - transform.localPosition).normalized;
         Quaternion targetRotation = Quaternion.LookRotation(dirToOpponent);
         float aimOffset = actions.ContinuousActions[2] * 30f;
@@ -175,7 +195,7 @@ public class MLAgent : Agent
             AddReward(-0.02f); // Penalty for trying to shoot while on cooldown
 
         if(moveX != 0f || moveZ != 0f)
-            AddReward(-0.005f); // Additional reward for shooting while opponent is in sight
+            AddReward(+0.005f); // Additional reward for shooting while opponent is in sight
         // Range reward
 
         float dist = Vector3.Distance(transform.localPosition, opponentTransform.localPosition);
@@ -188,7 +208,7 @@ public class MLAgent : Agent
         Vector3 toOpponent = (opponentTransform.position - transform.position).normalized;
         float perpendicular = Vector3.Dot(move.normalized, Vector3.Cross(toOpponent, Vector3.up));
         if (Mathf.Abs(perpendicular) > 0.7f) // strong sideways movement
-            AddReward(+0.01f);
+            AddReward(+0.03f);
         
     }
 

@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 3466830437503065338}
   - component: {fileID: 5580796679282092634}
   - component: {fileID: 7797370987526810822}
-  - component: {fileID: 1123830085602546961}
   - component: {fileID: 8239090966600613316}
   m_Layer: 6
   m_Name: Opponent
@@ -129,23 +128,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Opponent
   StartingHealth: 100
+  moveSpeed: 3
+  strafeSpeed: 2
+  attackDistance: 7
+  tooCloseDistance: 3
   shootingPoint: {fileID: 2577895961694034836}
   bulletSpawnPoint: {fileID: 5472140397554585600}
-  reload: 1
   bulletPrefab: {fileID: 2945978606866661294, guid: ec28ff0f57779884195ede9b517975af, type: 3}
+  reload: 1
   agentTransform: {fileID: 0}
---- !u!114 &1123830085602546961
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1926547652129817261}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6c742b4b8ab889044981271248580d92, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OpponentStrafe
 --- !u!54 &8239090966600613316
 Rigidbody:
   m_ObjectHideFlags: 0
