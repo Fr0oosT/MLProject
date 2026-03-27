@@ -29,6 +29,8 @@ public class MLAgent : Agent
 
     [Header("Projectile")]
     public GameObject bulletPrefab;
+    private float lastBulletDist = 0f;
+
 
     [Header("Strafing")]
     private float strafeSpeed = 5f;
@@ -69,6 +71,7 @@ public class MLAgent : Agent
     {
         shotAvailable = true;
         stepsAlive = 0;
+        lastBulletDist = 0f;
 
         transform.localPosition = startPosition;
 
@@ -82,6 +85,27 @@ public class MLAgent : Agent
         opponentTransform.GetComponent<Opponent>().Respawn();
         
     }
+
+    private void GetNearestBulletInfo(out Vector3 nearestDir, out float nearestDist)
+    {
+        Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
+
+        nearestDir = Vector3.zero;
+        nearestDist = 3f;
+
+        foreach (var b in bullets)
+        {
+            Vector3 toBullet = b.transform.position - transform.position;
+            float dist = toBullet.magnitude;
+
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearestDir = transform.InverseTransformDirection(toBullet.normalized);
+            }
+        }
+    }
+
 
     public override void CollectObservations(VectorSensor sensor)
     {
@@ -112,21 +136,7 @@ public class MLAgent : Agent
 
         sensor.AddObservation(health.currentHealth / 100f); // 1
 
-        Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
-        Vector3 nearestBulletDir = Vector3.zero;
-        float nearestBulletDist = 1f;
-
-        foreach (var b in bullets)
-        {
-            Vector3 toBullet = b.transform.position - transform.position;
-            float bulletDist = toBullet.magnitude;
-
-            if (bulletDist < nearestBulletDist)
-            {
-                nearestBulletDist = bulletDist;
-                nearestBulletDir = transform.InverseTransformDirection(toBullet.normalized);
-            }
-        }
+        GetNearestBulletInfo(out Vector3 nearestBulletDir, out float nearestBulletDist);
 
         sensor.AddObservation(nearestBulletDir);   // 3
         sensor.AddObservation(nearestBulletDist);  // 1
@@ -166,8 +176,8 @@ public class MLAgent : Agent
 
 
         // Moving
-        float moveX = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
-        float moveZ = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
+        float moveX = actions.ContinuousActions[0];
+        float moveZ = actions.ContinuousActions[1];
 
   
 
@@ -180,8 +190,8 @@ public class MLAgent : Agent
         targetRotation *= Quaternion.Euler(0f, aimOffset, 0f);
         transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
-        // Step penalty
-        AddReward(-0.001f);
+        // // Step penalty
+        // AddReward(-0.001f);
 
         bool inSight = IsOpponentInSight();
 
@@ -194,7 +204,7 @@ public class MLAgent : Agent
         if(IsOpponentInSight() && !shotAvailable)
             AddReward(-0.02f); // Penalty for trying to shoot while on cooldown
 
-        if(moveX != 0f || moveZ != 0f)
+        if((moveX != 0f || moveZ != 0f) && inSight)
             AddReward(+0.005f); // Additional reward for shooting while opponent is in sight
         // Range reward
 
@@ -209,6 +219,14 @@ public class MLAgent : Agent
         float perpendicular = Vector3.Dot(move.normalized, Vector3.Cross(toOpponent, Vector3.up));
         if (Mathf.Abs(perpendicular) > 0.7f) // strong sideways movement
             AddReward(+0.03f);
+
+
+        GetNearestBulletInfo(out Vector3 nearestBulletDir, out float nearestBulletDist);
+
+        if (nearestBulletDist > lastBulletDist + 0.1f)
+        AddReward(+0.02f);
+
+        lastBulletDist = nearestBulletDist;
         
     }
 
